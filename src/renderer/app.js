@@ -165,18 +165,17 @@ function toggleSidebar() {
   updateSidebarButtons();
 }
 
-function injectSidebarCSS(webview, hide) {
-  if (hide) {
-    webview.insertCSS(SIDEBAR_HIDE_CSS).catch(() => {});
-    webview.executeJavaScript(`
-      const styles = document.querySelectorAll('style');
-      const last = styles[styles.length - 1];
-      if (last) last.setAttribute('data-sidebar-toggle', 'true');
-    `).catch(() => {});
-  } else {
-    webview.executeJavaScript(`
-      document.querySelectorAll('style[data-sidebar-toggle]').forEach(el => el.remove());
-    `).catch(() => {});
+async function injectSidebarCSS(webview, hide) {
+  try {
+    if (hide) {
+      const key = await webview.insertCSS(SIDEBAR_HIDE_CSS);
+      webview._sidebarCSSKey = key;
+    } else if (webview._sidebarCSSKey) {
+      await webview.removeInsertedCSS(webview._sidebarCSSKey);
+      webview._sidebarCSSKey = null;
+    }
+  } catch {
+    // Webview not ready yet — will be applied on did-finish-load
   }
 }
 

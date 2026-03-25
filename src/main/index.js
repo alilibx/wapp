@@ -42,6 +42,16 @@ ipcMain.handle('get-config', () => ({
 ipcMain.handle('setup-session', (_event, partition) => {
   const ses = session.fromPartition(partition);
   ses.setUserAgent(USER_AGENT);
+
+  // Strip CORP/COEP headers that block WhatsApp sub-resources in webviews
+  ses.webRequest.onHeadersReceived((details, callback) => {
+    const headers = { ...details.responseHeaders };
+    delete headers['cross-origin-opener-policy'];
+    delete headers['cross-origin-embedder-policy'];
+    delete headers['Cross-Origin-Opener-Policy'];
+    delete headers['Cross-Origin-Embedder-Policy'];
+    callback({ responseHeaders: headers });
+  });
 });
 
 ipcMain.handle('clear-session', (_event, partition) => {
