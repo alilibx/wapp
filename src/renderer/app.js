@@ -30,6 +30,7 @@ let config = null;
 const tabsEl = document.getElementById('tabs');
 const leftTabsEl = document.getElementById('leftTabs');
 const container = document.getElementById('webviewContainer');
+const statusBar = document.getElementById('statusBar');
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -37,13 +38,30 @@ function getInitials(name) {
   return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 }
 
+// ── Persistence ─────────────────────────────────────────────
+
+function saveAccounts() {
+  const data = accounts.map(a => ({ id: a.id, name: a.name, partition: a.partition }));
+  localStorage.setItem('wapp-accounts', JSON.stringify(data));
+  localStorage.setItem('wapp-active', activeAccountId);
+  localStorage.setItem('wapp-tab-position', tabPosition);
+}
+
+function loadSavedAccounts() {
+  try {
+    return JSON.parse(localStorage.getItem('wapp-accounts')) || [];
+  } catch {
+    return [];
+  }
+}
+
 // ── Account Management ──────────────────────────────────────
 
-async function createAccount(name) {
+async function createAccount(name, existingId, existingPartition) {
   if (!config) config = await window.wapp.getConfig();
 
-  const id = `account-${Date.now()}`;
-  const partition = `persist:whatsapp-${id}`;
+  const id = existingId || `account-${Date.now()}`;
+  const partition = existingPartition || `persist:whatsapp-${id}`;
 
   await window.wapp.setupSession(partition);
 
@@ -69,6 +87,8 @@ async function createAccount(name) {
   const account = { id, name: name || `Account ${accounts.length + 1}`, partition, webview };
   accounts.push(account);
   switchTo(id);
+  saveAccounts();
+  updateStatusBar();
   return account;
 }
 
@@ -78,6 +98,8 @@ function switchTo(id) {
     acc.webview.classList.toggle('active', acc.id === id);
   });
   renderTabs();
+  saveAccounts();
+  updateStatusBar();
 }
 
 function removeAccount(id) {
@@ -95,6 +117,8 @@ function removeAccount(id) {
     activeAccountId = null;
     renderTabs();
   }
+  saveAccounts();
+  updateStatusBar();
 }
 
 // ── Tab Rendering ───────────────────────────────────────────
@@ -157,6 +181,7 @@ async function showAccountMenu(accountId) {
     if (newName && newName.trim()) {
       acc.name = newName.trim();
       renderTabs();
+      saveAccounts();
     }
   } else if (action === 'reload') {
     acc.webview.reload();
@@ -170,6 +195,7 @@ async function openSettings() {
   if (result === 'top' || result === 'left') {
     tabPosition = result;
     document.body.className = `layout-${tabPosition}`;
+    saveAccounts();
   }
 }
 
@@ -179,6 +205,7 @@ function toggleSidebar() {
   sidebarHidden = !sidebarHidden;
   accounts.forEach(acc => injectSidebarCSS(acc.webview, sidebarHidden));
   updateSidebarButtons();
+  updateStatusBar();
 }
 
 async function injectSidebarCSS(webview, hide) {
@@ -200,6 +227,30 @@ function updateSidebarButtons() {
   document.getElementById('sidebarToggleLeft').classList.toggle('active', sidebarHidden);
 }
 
+// ── Status Bar ──────────────────────────────────────────────
+
+function updateStatusBar() {
+  const activeAcc = accounts.find(a => a.id === activeAccountId);
+  const accName = activeAcc ? activeAcc.name : 'No account';
+  const accCount = accounts.length;
+  const sidebarState = sidebarHidden ? 'Hidden' : 'Visible';
+
+  statusBar.innerHTML = `
+    <div class="status-left">
+      <span class="status-item">${accName}</span>
+      <span class="status-sep">|</span>
+      <span class="status-item">${accCount} account${accCount !== 1 ? 's' : ''}</span>
+    </div>
+    <div class="status-right">
+      <span class="status-item status-clickable" id="statusSidebarToggle">
+        <kbd>⌘B</kbd> Sidebar ${sidebarState}
+      </span>
+    </div>
+  `;
+
+  document.getElementById('statusSidebarToggle').addEventListener('click', toggleSidebar);
+}
+
 // ── Event Listeners ─────────────────────────────────────────
 
 document.getElementById('settingsToggle').addEventListener('click', openSettings);
@@ -215,8 +266,38 @@ window.wapp.onToggleSidebar(() => toggleSidebar());
 window.wapp.onTabPositionChanged((pos) => {
   tabPosition = pos;
   document.body.className = `layout-${tabPosition}`;
+  saveAccounts();
 });
 
 // ── Init ────────────────────────────────────────────────────
 
-createAccount('Account 1');
+async function init() {
+  config = await window.wapp.getConfig();
+
+  // Restore saved tab position
+  const savedPosition = localStorage.getItem('wapp-tab-position');
+  if (savedPosition === 'left' || savedPosition === 'top') {
+    tabPosition = savedPosition;
+    document.body.className = `layout-${tabPosition}`;
+  }
+
+  // Restore saved accounts (reuse same partitions for session persistence)
+  const saved = loadSavedAccounts();
+  if (saved.length > 0) {
+    const savedActive = localStorage.getItem('wapp-active');
+    for (const acc of saved) {
+      await createAccount(acc.name, acc.id, acc.partition);
+    }
+    // Restore active tab
+    if (savedActive && accounts.find(a => a.id === savedActive)) {
+      switchTo(savedActive);
+    }
+  } else {
+    // First launch — create default account
+    await createAccount('Account 1');
+  }
+
+  updateStatusBar();
+}
+
+init();

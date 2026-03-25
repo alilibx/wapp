@@ -62,9 +62,16 @@ function setupSessionForPartition(partition) {
   // Convert session cookies to persistent cookies so WhatsApp auth survives restarts.
   // WhatsApp sets critical auth cookies without an expiration date (session cookies),
   // which Chromium deletes on quit. We intercept and re-set them with a 1-year expiry.
-  ses.cookies.on('changed', async (_event, cookie, _cause, removed) => {
+  const persistingCookies = new Set();
+
+  ses.cookies.on('changed', async (_event, cookie, cause, removed) => {
     if (removed || !cookie.session) return;
     if (!cookie.domain.includes('whatsapp')) return;
+
+    // Guard against infinite loop: our own set() triggers 'changed' again
+    const cookieKey = `${cookie.domain}:${cookie.name}:${cookie.path}`;
+    if (persistingCookies.has(cookieKey)) return;
+    persistingCookies.add(cookieKey);
 
     const url = `http${cookie.secure ? 's' : ''}://${cookie.domain.replace(/^\./, '')}${cookie.path}`;
     try {
@@ -81,6 +88,8 @@ function setupSessionForPartition(partition) {
       });
     } catch {
       // Ignore cookie set errors
+    } finally {
+      persistingCookies.delete(cookieKey);
     }
   });
 }
