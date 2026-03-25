@@ -1,11 +1,20 @@
 const COLORS = ['#00a884', '#53bdeb', '#d97706', '#8b5cf6', '#ec4899', '#ef4444', '#06b6d4', '#84cc16'];
 
 const SIDEBAR_HIDE_CSS = `
+  /* Hide the entire left sidebar panel (class _aigw contains header + chat list) */
+  div._aigw { display: none !important; }
+  div[class*="_aigw"] { display: none !important; }
+  /* Also target by id and common selectors */
+  #side { display: none !important; }
   #pane-side { display: none !important; }
   div[data-testid="chat-list"] { display: none !important; }
-  ._akbu { display: none !important; }
-  div._aigv > div:first-child { display: none !important; }
-  div._aigv > div:last-child { flex: 1 !important; max-width: 100% !important; }
+  /* Make the right/conversation panel take full width */
+  div._aigv > div:last-child,
+  div[class*="_aigv"] > div:last-child {
+    flex: 1 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 `;
 
 // ── State ───────────────────────────────────────────────────
@@ -46,6 +55,13 @@ async function createAccount(name) {
 
   webview.addEventListener('did-finish-load', () => {
     if (sidebarHidden) injectSidebarCSS(webview, true);
+  });
+
+  // Block ⌘R / Ctrl+R from refreshing the webview
+  webview.addEventListener('before-input-event', (_event, input) => {
+    if ((input.meta || input.control) && input.key.toLowerCase() === 'r') {
+      _event.preventDefault();
+    }
   });
 
   container.appendChild(webview);

@@ -7,6 +7,7 @@ const USER_AGENT =
 
 let mainWindow;
 let tabPosition = 'top';
+const activeSessions = new Set();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -27,19 +28,24 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 
+  // Disable ⌘R / Ctrl+R refresh on the main window
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.meta || input.control) && input.key.toLowerCase() === 'r') {
+      event.preventDefault();
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
-// ── IPC Handlers ────────────────────────────────────────────
+// ── Session Setup ───────────────────────────────────────────
 
-ipcMain.handle('get-config', () => ({
-  whatsappUrl: WHATSAPP_URL,
-  userAgent: USER_AGENT,
-}));
+function setupSessionForPartition(partition) {
+  if (activeSessions.has(partition)) return;
+  activeSessions.add(partition);
 
-ipcMain.handle('setup-session', (_event, partition) => {
   const ses = session.fromPartition(partition);
   ses.setUserAgent(USER_AGENT);
 
@@ -52,9 +58,46 @@ ipcMain.handle('setup-session', (_event, partition) => {
     delete headers['Cross-Origin-Embedder-Policy'];
     callback({ responseHeaders: headers });
   });
+
+  // Convert session cookies to persistent cookies so WhatsApp auth survives restarts.
+  // WhatsApp sets critical auth cookies without an expiration date (session cookies),
+  // which Chromium deletes on quit. We intercept and re-set them with a 1-year expiry.
+  ses.cookies.on('changed', async (_event, cookie, _cause, removed) => {
+    if (removed || !cookie.session) return;
+    if (!cookie.domain.includes('whatsapp')) return;
+
+    const url = `http${cookie.secure ? 's' : ''}://${cookie.domain.replace(/^\./, '')}${cookie.path}`;
+    try {
+      await ses.cookies.set({
+        url,
+        name: cookie.name,
+        value: cookie.value,
+        domain: cookie.domain,
+        path: cookie.path,
+        secure: cookie.secure,
+        httpOnly: cookie.httpOnly,
+        sameSite: cookie.sameSite || 'unspecified',
+        expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
+      });
+    } catch {
+      // Ignore cookie set errors
+    }
+  });
+}
+
+// ── IPC Handlers ────────────────────────────────────────────
+
+ipcMain.handle('get-config', () => ({
+  whatsappUrl: WHATSAPP_URL,
+  userAgent: USER_AGENT,
+}));
+
+ipcMain.handle('setup-session', (_event, partition) => {
+  setupSessionForPartition(partition);
 });
 
 ipcMain.handle('clear-session', (_event, partition) => {
+  activeSessions.delete(partition);
   session.fromPartition(partition).clearStorageData();
 });
 
@@ -118,6 +161,16 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+// Flush all session data to disk before quitting
+app.on('before-quit', async (event) => {
+  event.preventDefault();
+  const flushPromises = [...activeSessions].map((partition) =>
+    session.fromPartition(partition).flushStorageData()
+  );
+  await Promise.all(flushPromises);
+  app.exit(0);
 });
 
 app.on('window-all-closed', () => {
