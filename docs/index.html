@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wapp — Multiple WhatsApp Accounts, One App</title>
+<meta name="description" content="A multi-account WhatsApp Web client for Mac. Run multiple accounts side-by-side, toggle the sidebar, and stay focused.">
+<meta property="og:title" content="Wapp — Multiple WhatsApp Accounts, One App">
+<meta property="og:description" content="A multi-account WhatsApp Web client for Mac.">
+<meta property="og:type" content="website">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #080d10;
+  --bg: #111b21;
+  --bg-card: #1a262d;
+  --bg-card-hover: #1f3038;
+  --border: rgba(0,168,132,0.08);
+  --border-hover: rgba(0,168,132,0.2);
+  --green: #00a884;
+  --green-glow: rgba(0,168,132,0.15);
+  --green-bright: #00d4a8;
+  --text: #e9edef;
+  --text-dim: #8696a0;
+  --text-muted: #52656d;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', -apple-system, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg-deep);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ NOISE TEXTURE ═══ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ═══ SELECTION ═══ */
+::selection { background: var(--green); color: var(--bg-deep); }
+
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+
+/* ═══ REVEAL ANIMATIONS ═══ */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+/* ═══ LAYOUT ═══ */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+section { padding: 120px 0; position: relative; }
+
+/* ═══ HERO ═══ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.4;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+
+.hero-orb-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, var(--green) 0%, transparent 70%);
+  top: -200px; left: -100px;
+  opacity: 0.12;
+}
+
+.hero-orb-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #075e54 0%, transparent 70%);
+  bottom: -200px; right: -100px;
+  opacity: 0.1;
+  animation-delay: -7s;
+}
+
+.hero-orb-3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, var(--green-bright) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.06;
+  animation-delay: -14s;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,168,132,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,168,132,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 100%);
+}
+
+.hero-content { position: relative; z-index: 1; }
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--border-hover);
+  background: rgba(0,168,132,0.06);
+  font-size: 13px;
+  color: var(--green);
+  letter-spacing: 0.03em;
+  margin-bottom: 40px;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.hero h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(56px, 10vw, 120px);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--green);
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2.5vw, 20px);
+  color: var(--text-dim);
+  max-width: 480px;
+  margin: 0 auto 48px;
+  line-height: 1.6;
+  font-weight: 300;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  border-radius: 14px;
+  background: var(--green);
+  color: var(--bg-deep);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.5s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px var(--green-glow), 0 0 80px rgba(0,168,132,0.1);
+}
+
+.btn-primary:hover::before { transform: translateX(100%); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 28px;
+  border-radius: 14px;
+  border: 1px solid var(--border-hover);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 400;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+  background: rgba(255,255,255,0.02);
+}
+
+.hero-meta {
+  margin-top: 32px;
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0;
+  animation: fadeUp 0.8s 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-meta span { margin: 0 8px; }
+
+/* ═══ SECTION HEADERS ═══ */
+.section-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--green);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.section-title {
+  font-family: var(--serif);
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.section-desc {
+  font-size: 17px;
+  color: var(--text-dim);
+  max-width: 520px;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* ═══ FEATURES ═══ */
+.features { background: var(--bg-deep); }
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 64px;
+  background: var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.feature-card {
+  background: var(--bg);
+  padding: 40px 32px;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.feature-card:hover { background: var(--bg-card); }
+
+.feature-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.feature-card:hover::after { opacity: 0.3; }
+
+.feature-icon {
+  width: 44px; height: 44px;
+  margin-bottom: 20px;
+  color: var(--green);
+  opacity: 0.8;
+}
+
+.feature-card h3 {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.feature-card p {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* ═══ HOW IT WORKS ═══ */
+.how-it-works { background: var(--bg); }
+
+.steps {
+  display: flex;
+  gap: 24px;
+  margin-top: 64px;
+  counter-reset: step;
+}
+
+.step {
+  flex: 1;
+  position: relative;
+  padding: 40px 32px 36px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-deep);
+  counter-increment: step;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+}
+
+.step:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
+}
+
+.step::before {
+  content: counter(step);
+  position: absolute;
+  top: -20px; right: -10px;
+  font-family: var(--serif);
+  font-size: 140px;
+  font-weight: 400;
+  color: var(--green);
+  opacity: 0.04;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--green);
+  color: var(--bg-deep);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.step h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.step p {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* ═══ SHORTCUTS ═══ */
+.shortcuts { background: var(--bg-deep); }
+
+.shortcut-table {
+  margin-top: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  max-width: 560px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  transition: background 0.2s;
+}
+
+.shortcut-row:last-child { border-bottom: none; }
+.shortcut-row:hover { background: var(--bg-card); }
+
+.shortcut-row span:first-child {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-hover);
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ═══ DOWNLOAD CTA ═══ */
+.download-cta {
+  background: var(--bg);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.download-cta .hero-orb {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, var(--green) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.06;
+  position: absolute;
+}
+
+.download-cta .container { position: relative; z-index: 1; }
+
+.download-cta .section-title { margin-bottom: 8px; }
+
+.download-cta .section-desc {
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.download-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.badge svg { width: 14px; height: 14px; color: var(--green); }
+
+/* ═══ FOOTER ═══ */
+footer {
+  padding: 40px 24px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+footer p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+footer a {
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+footer a:hover { color: var(--green); }
+
+/* ═══ NAV ═══ */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.3s, backdrop-filter 0.3s;
+}
+
+.nav.scrolled {
+  background: rgba(8,13,16,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 22px;
+}
+
+.nav-logo svg { width: 28px; height: 28px; }
+
+.nav-links { display: flex; gap: 32px; }
+
+.nav-links a {
+  font-size: 14px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover { color: var(--text); }
+
+.nav-cta {
+  padding: 8px 20px;
+  border-radius: 10px;
+  background: var(--green);
+  color: var(--bg-deep) !important;
+  font-weight: 600;
+  font-size: 13px !important;
+  transition: opacity 0.2s;
+}
+
+.nav-cta:hover { opacity: 0.9; color: var(--bg-deep) !important; }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 768px) {
+  section { padding: 80px 0; }
+  .features-grid { grid-template-columns: 1fr; }
+  .steps { flex-direction: column; }
+  .nav-links { display: none; }
+  .hero { min-height: auto; padding: 140px 24px 80px; }
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 48px; }
+  .feature-card { padding: 28px 24px; }
+  .hero-actions { flex-direction: column; }
+  .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav class="nav" id="nav">
+  <a href="#" class="nav-logo">
+    <svg viewBox="0 0 512 512" fill="none">
+      <rect x="16" y="16" width="480" height="480" rx="96" fill="#00a884"/>
+      <g transform="translate(256,230) scale(1.1)" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0-80 C44-80 80-44 80 0 C80 44 44 80 0 80 C-28 80 -52 66 -66 48 L-80 80 L-68 48 C-78 32 -80 16 -80 0 C-80-44 -44-80 0-80Z" fill="rgba(255,255,255,0.15)"/>
+        <path d="M-32-12 C-32-12 -20-28 0-28 C20-28 32-12 32-12"/>
+        <path d="M-36 16 C-36 16 -18 36 0 36 C18 36 36 16 36 16"/>
+      </g>
+    </svg>
+    Wapp
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#shortcuts">Shortcuts</a>
+    <a href="https://github.com/alilibx/wapp" target="_blank">GitHub</a>
+    <a href="https://github.com/alilibx/wapp/releases/latest" class="nav-cta">Download</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+    <div class="hero-grid"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      v0.1.0 &mdash; Now available for macOS
+    </div>
+    <h1>Multiple accounts.<br><em>One app.</em></h1>
+    <p class="hero-sub">Run all your WhatsApp accounts side&#8209;by&#8209;side. Toggle the sidebar. Stay focused. It's that simple.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/alilibx/wapp/releases/latest" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download for Mac
+      </a>
+      <a href="https://github.com/alilibx/wapp" target="_blank" class="btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+    <p class="hero-meta">Free &amp; open source <span>&middot;</span> macOS (Apple Silicon) <span>&middot;</span> MIT License</p>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Features</p>
+      <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+      <p class="section-desc">Built for people who juggle multiple WhatsApp accounts&nbsp;&mdash; personal, work, business&nbsp;&mdash; without the tab chaos.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal reveal-delay-1">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <h3>Multiple Accounts</h3>
+        <p>Each account runs in its own isolated session. Add as many as you need, each with its own QR login.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/>
+        </svg>
+        <h3>Toggle Sidebar</h3>
+        <p>Hide the WhatsApp chat list instantly with <kbd>⌘B</kbd>. Focus on the conversation that matters.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <h3>Flexible Tabs</h3>
+        <p>Switch between horizontal top tabs and vertical left tabs. Pick whichever layout suits your workflow.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <h3>Account Management</h3>
+        <p>Right-click any tab to rename, reload, or remove it. Name your accounts when you add them.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
+        <h3>Persistent Sessions</h3>
+        <p>Your login survives app restarts. Scan QR once, stay connected. Sessions are isolated per account.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/>
+        </svg>
+        <h3>Native macOS</h3>
+        <p>Hidden title bar, traffic light controls, native context menus. Feels like it belongs on your Mac.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="how-it-works" id="how-it-works">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Getting Started</p>
+      <h2 class="section-title">Up and running<br>in 30 seconds.</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal reveal-delay-1">
+        <div class="step-num">1</div>
+        <h3>Download &amp; Install</h3>
+        <p>Download the DMG from GitHub releases. Open it, drag Wapp into your Applications folder. Done.</p>
+      </div>
+      <div class="step reveal reveal-delay-2">
+        <div class="step-num">2</div>
+        <h3>Add Your Accounts</h3>
+        <p>Click the + button, name your account, then scan the QR code with your phone. Repeat for each account.</p>
+      </div>
+      <div class="step reveal reveal-delay-3">
+        <div class="step-num">3</div>
+        <h3>Manage &amp; Focus</h3>
+        <p>Switch between accounts with tabs. Press ⌘B to hide the sidebar when you need to focus on a conversation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SHORTCUTS ═══ -->
+<section class="shortcuts" id="shortcuts">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Keyboard Shortcuts</p>
+      <h2 class="section-title">Designed for<br>your fingertips.</h2>
+    </div>
+    <div class="shortcut-table reveal reveal-delay-1">
+      <div class="shortcut-row">
+        <span>Toggle WhatsApp sidebar</span>
+        <kbd>⌘ B</kbd>
+      </div>
+      <div class="shortcut-row">
+        <span>New account</span>
+        <kbd>+</kbd>
+      </div>
+      <div class="shortcut-row">
+        <span>Account actions</span>
+        <kbd>Right Click</kbd>
+      </div>
+      <div class="shortcut-row">
+        <span>Settings</span>
+        <kbd>⚙ Icon</kbd>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DOWNLOAD CTA ═══ -->
+<section class="download-cta" id="download">
+  <div class="hero-orb"></div>
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Get Wapp</p>
+      <h2 class="section-title">Ready to simplify<br>your <em style="font-family:var(--serif);color:var(--green);font-style:italic">WhatsApp</em> life?</h2>
+      <p class="section-desc">Download Wapp for free. Open source, no tracking, no accounts required.</p>
+    </div>
+    <div class="reveal reveal-delay-1">
+      <a href="https://github.com/alilibx/wapp/releases/latest" class="btn-primary" style="font-size:17px;padding:18px 40px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download v0.1.0
+      </a>
+      <div class="download-badges">
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Open Source
+        </span>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          macOS (Apple Silicon)
+        </span>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Free Forever
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/alilibx/wapp" target="_blank">GitHub</a> &nbsp;&middot;&nbsp;
+      <a href="https://github.com/alilibx/wapp/releases" target="_blank">Releases</a> &nbsp;&middot;&nbsp;
+      <a href="https://github.com/alilibx/wapp/blob/main/LICENSE" target="_blank">MIT License</a>
+    </p>
+    <p style="margin-top:12px;">
+      Wapp is not affiliated with, endorsed by, or connected to WhatsApp or Meta Platforms, Inc.
+    </p>
+    <p style="margin-top:6px;">
+      &copy; 2026 <a href="https://github.com/alilibx" target="_blank">alilibx</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+// ═══ SCROLL REVEAL ═══
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ═══ NAV SCROLL ═══
+const nav = document.getElementById('nav');
+let ticking = false;
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(() => {
+      nav.classList.toggle('scrolled', window.scrollY > 40);
+      ticking = false;
+    });
+    ticking = true;
+  }
+});
+
+// ═══ SMOOTH ANCHOR SCROLL ═══
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+</body>
+</html>
