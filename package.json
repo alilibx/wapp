@@ -1,0 +1,22 @@
+{
+  "name": "wapp",
+  "version": "1.0.0",
+  "description": "Multi-account WhatsApp Web client for Mac with toggleable sidebar",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^41.0.4",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.wapp.client",
+    "productName": "Wapp",
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "target": "dmg"
+    }
+  }
+}
