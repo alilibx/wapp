@@ -535,6 +535,138 @@ kbd {
 
 .badge svg { width: 14px; height: 14px; color: var(--green); }
 
+/* ═══ RELEASES / CHANGELOG ═══ */
+.releases { background: var(--bg-deep); }
+
+.releases-list {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 700px;
+}
+
+.release-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.release-card:hover { border-color: var(--border-hover); }
+
+.release-card.latest { border-color: rgba(0,168,132,0.25); }
+
+.release-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.release-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.release-title h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.release-tag {
+  padding: 2px 10px;
+  border-radius: 100px;
+  background: var(--green);
+  color: var(--bg-deep);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.release-tag.old {
+  background: transparent;
+  border: 1px solid var(--border-hover);
+  color: var(--text-dim);
+}
+
+.release-date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.release-body {
+  padding: 0 24px 20px;
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.release-body ul {
+  list-style: none;
+  padding: 0;
+}
+
+.release-body li {
+  padding: 3px 0;
+  padding-left: 18px;
+  position: relative;
+}
+
+.release-body li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.5;
+}
+
+.release-assets {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 20px;
+  flex-wrap: wrap;
+}
+
+.release-dl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.release-dl:hover {
+  border-color: var(--green);
+  color: var(--text);
+}
+
+.release-dl svg { width: 14px; height: 14px; }
+
+.release-dl .dl-size {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.releases-loading {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 40px 0;
+}
+
 /* ═══ FOOTER ═══ */
 footer {
   padding: 40px 24px;
@@ -646,6 +778,7 @@ footer a:hover { color: var(--green); }
     <a href="#features">Features</a>
     <a href="#how-it-works">How It Works</a>
     <a href="#shortcuts">Shortcuts</a>
+    <a href="#releases">Releases</a>
     <a href="https://github.com/alilibx/wapp" target="_blank">GitHub</a>
     <a href="https://github.com/alilibx/wapp/releases/latest" class="nav-cta">Download</a>
   </div>
@@ -660,16 +793,16 @@ footer a:hover { color: var(--green); }
     <div class="hero-grid"></div>
   </div>
   <div class="hero-content">
-    <div class="hero-badge">
+    <div class="hero-badge" id="heroBadge">
       <span class="hero-badge-dot"></span>
-      v0.1.0 &mdash; Now available for macOS
+      <span id="heroBadgeText">Loading latest version&hellip;</span>
     </div>
     <h1>Multiple accounts.<br><em>One app.</em></h1>
     <p class="hero-sub">Run all your WhatsApp accounts side&#8209;by&#8209;side. Toggle the sidebar. Stay focused. It's that simple.</p>
     <div class="hero-actions">
-      <a href="https://github.com/alilibx/wapp/releases/latest" class="btn-primary">
+      <a href="https://github.com/alilibx/wapp/releases/latest" class="btn-primary" id="heroDownload">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download for Mac
+        <span id="heroDownloadText">Download for Mac</span>
       </a>
       <a href="https://github.com/alilibx/wapp" target="_blank" class="btn-secondary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -800,9 +933,9 @@ footer a:hover { color: var(--green); }
       <p class="section-desc">Download Wapp for free. Open source, no tracking, no accounts required.</p>
     </div>
     <div class="reveal reveal-delay-1">
-      <a href="https://github.com/alilibx/wapp/releases/latest" class="btn-primary" style="font-size:17px;padding:18px 40px">
+      <a href="https://github.com/alilibx/wapp/releases/latest" class="btn-primary" style="font-size:17px;padding:18px 40px" id="ctaDownload">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download v0.1.0
+        <span id="ctaDownloadText">Download Latest</span>
       </a>
       <div class="download-badges">
         <span class="badge">
@@ -818,6 +951,20 @@ footer a:hover { color: var(--green); }
           Free Forever
         </span>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ RELEASES ═══ -->
+<section class="releases" id="releases">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Releases</p>
+      <h2 class="section-title">Changelog</h2>
+      <p class="section-desc">All versions with download links and release notes.</p>
+    </div>
+    <div class="releases-list reveal reveal-delay-1" id="releasesList">
+      <p class="releases-loading">Loading releases&hellip;</p>
     </div>
   </div>
 </section>
@@ -843,12 +990,9 @@ footer a:hover { color: var(--green); }
 // ═══ SCROLL REVEAL ═══
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-    }
+    if (entry.isIntersecting) entry.target.classList.add('visible');
   });
 }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
 // ═══ NAV SCROLL ═══
@@ -872,6 +1016,93 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 });
+
+// ═══ DYNAMIC RELEASES FROM GITHUB API ═══
+const REPO = 'alilibx/wapp';
+const API = `https://api.github.com/repos/${REPO}/releases`;
+const DL_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+
+function formatBytes(bytes) {
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function markdownToHtml(md) {
+  // Simple markdown: convert **bold**, `code`, - list items, ### headings, newlines
+  let html = md
+    .replace(/### (.+)/g, '<strong>$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.+?)`/g, '<code style="background:rgba(0,168,132,0.1);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+  // Remaining newlines to <br>
+  html = html.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+  return html;
+}
+
+async function loadReleases() {
+  try {
+    const res = await fetch(API);
+    const releases = await res.json();
+    if (!releases.length) return;
+
+    // Update hero badge & download buttons with latest release
+    const latest = releases[0];
+    const dmg = latest.assets.find(a => a.name.endsWith('.dmg'));
+    const dmgUrl = dmg ? dmg.browser_download_url : latest.html_url;
+
+    document.getElementById('heroBadgeText').textContent = `${latest.tag_name} — Now available for macOS`;
+    document.getElementById('heroDownloadText').textContent = `Download ${latest.tag_name} for Mac`;
+    document.getElementById('heroDownload').href = dmgUrl;
+    document.getElementById('ctaDownloadText').textContent = `Download ${latest.tag_name}`;
+    document.getElementById('ctaDownload').href = dmgUrl;
+
+    // Update nav download link
+    document.querySelector('.nav-cta').href = dmgUrl;
+
+    // Render releases list
+    const container = document.getElementById('releasesList');
+    container.innerHTML = releases.map((rel, i) => {
+      const isLatest = i === 0;
+      const assets = rel.assets.filter(a => a.name.endsWith('.dmg') || a.name.endsWith('.zip'));
+      const body = rel.body ? markdownToHtml(rel.body) : '';
+
+      return `
+        <div class="release-card ${isLatest ? 'latest' : ''}">
+          <div class="release-header">
+            <div class="release-title">
+              <h3>${rel.name || rel.tag_name}</h3>
+              <span class="release-tag ${isLatest ? '' : 'old'}">${isLatest ? 'Latest' : rel.tag_name}</span>
+            </div>
+            <span class="release-date">${formatDate(rel.published_at)}</span>
+          </div>
+          ${body ? `<div class="release-body">${body}</div>` : ''}
+          ${assets.length ? `
+            <div class="release-assets">
+              ${assets.map(a => `
+                <a href="${a.browser_download_url}" class="release-dl">
+                  ${DL_ICON}
+                  ${a.name}
+                  <span class="dl-size">(${formatBytes(a.size)})</span>
+                </a>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    document.getElementById('releasesList').innerHTML = '<p class="releases-loading">Could not load releases. <a href="https://github.com/alilibx/wapp/releases" target="_blank" style="color:var(--green)">View on GitHub</a></p>';
+    document.getElementById('heroBadgeText').textContent = 'Available for macOS';
+  }
+}
+
+loadReleases();
 </script>
 </body>
 </html>
