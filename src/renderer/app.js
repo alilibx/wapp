@@ -177,16 +177,32 @@ async function showAccountMenu(accountId) {
   if (!acc || !action) return;
 
   if (action === 'rename') {
-    const newName = prompt('Rename account:', acc.name);
+    const newName = await window.wapp.showInputDialog({
+      title: 'Rename Account',
+      label: 'New name',
+      defaultValue: acc.name,
+    });
     if (newName && newName.trim()) {
       acc.name = newName.trim();
       renderTabs();
       saveAccounts();
+      updateStatusBar();
     }
   } else if (action === 'reload') {
     acc.webview.reload();
   } else if (action === 'remove') {
     removeAccount(accountId);
+  }
+}
+
+async function promptNewAccount() {
+  const name = await window.wapp.showInputDialog({
+    title: 'New Account',
+    label: 'Account name',
+    defaultValue: `Account ${accounts.length + 1}`,
+  });
+  if (name && name.trim()) {
+    await createAccount(name.trim());
   }
 }
 
@@ -255,8 +271,8 @@ function updateStatusBar() {
 
 document.getElementById('settingsToggle').addEventListener('click', openSettings);
 document.getElementById('settingsToggleLeft').addEventListener('click', openSettings);
-document.getElementById('addAccount').addEventListener('click', () => createAccount());
-document.getElementById('addAccountLeft').addEventListener('click', () => createAccount());
+document.getElementById('addAccount').addEventListener('click', () => promptNewAccount());
+document.getElementById('addAccountLeft').addEventListener('click', () => promptNewAccount());
 document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
 document.getElementById('sidebarToggleLeft').addEventListener('click', toggleSidebar);
 
@@ -293,8 +309,13 @@ async function init() {
       switchTo(savedActive);
     }
   } else {
-    // First launch — create default account
-    await createAccount('Account 1');
+    // First launch — prompt for account name
+    const name = await window.wapp.showInputDialog({
+      title: 'Welcome to Wapp',
+      label: 'Name your first account',
+      defaultValue: 'Account 1',
+    });
+    await createAccount(name && name.trim() ? name.trim() : 'Account 1');
   }
 
   updateStatusBar();

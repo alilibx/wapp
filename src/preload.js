@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('wapp', {
   clearSession: (partition) => ipcRenderer.invoke('clear-session', partition),
   showAccountMenu: () => ipcRenderer.invoke('show-account-menu'),
   showSettingsMenu: () => ipcRenderer.invoke('show-settings-menu'),
+  showInputDialog: (opts) => ipcRenderer.invoke('show-input-dialog', opts),
 
   onToggleSidebar: (cb) => ipcRenderer.on('toggle-sidebar', cb),
   onTabPositionChanged: (cb) => ipcRenderer.on('tab-position-changed', (_e, pos) => cb(pos)),
