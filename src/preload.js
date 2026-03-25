@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('wapp', {
   showAccountMenu: () => ipcRenderer.invoke('show-account-menu'),
   showSettingsMenu: () => ipcRenderer.invoke('show-settings-menu'),
   showInputDialog: (opts) => ipcRenderer.invoke('show-input-dialog', opts),
+  setTrafficLightPosition: (pos) => ipcRenderer.invoke('set-traffic-light-position', pos),
 
   onToggleSidebar: (cb) => ipcRenderer.on('toggle-sidebar', cb),
   onTabPositionChanged: (cb) => ipcRenderer.on('tab-position-changed', (_e, pos) => cb(pos)),

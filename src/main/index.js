@@ -105,6 +105,12 @@ ipcMain.handle('setup-session', (_event, partition) => {
   setupSessionForPartition(partition);
 });
 
+ipcMain.handle('set-traffic-light-position', (_event, position) => {
+  if (mainWindow) {
+    mainWindow.setTrafficLightPosition(position);
+  }
+});
+
 ipcMain.handle('clear-session', (_event, partition) => {
   activeSessions.delete(partition);
   session.fromPartition(partition).clearStorageData();

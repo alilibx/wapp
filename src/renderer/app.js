@@ -209,10 +209,20 @@ async function promptNewAccount() {
 async function openSettings() {
   const result = await window.wapp.showSettingsMenu();
   if (result === 'top' || result === 'left') {
-    tabPosition = result;
-    document.body.className = `layout-${tabPosition}`;
-    saveAccounts();
+    setLayout(result);
   }
+}
+
+function setLayout(position) {
+  tabPosition = position;
+  document.body.className = `layout-${tabPosition}`;
+  // Reposition traffic lights for each layout
+  if (tabPosition === 'left') {
+    window.wapp.setTrafficLightPosition({ x: 16, y: 12 });
+  } else {
+    window.wapp.setTrafficLightPosition({ x: 12, y: 12 });
+  }
+  saveAccounts();
 }
 
 // ── Sidebar Toggle ──────────────────────────────────────────
@@ -280,9 +290,7 @@ document.getElementById('sidebarToggleLeft').addEventListener('click', toggleSid
 
 window.wapp.onToggleSidebar(() => toggleSidebar());
 window.wapp.onTabPositionChanged((pos) => {
-  tabPosition = pos;
-  document.body.className = `layout-${tabPosition}`;
-  saveAccounts();
+  setLayout(pos);
 });
 
 // ── Init ────────────────────────────────────────────────────
@@ -293,8 +301,7 @@ async function init() {
   // Restore saved tab position
   const savedPosition = localStorage.getItem('wapp-tab-position');
   if (savedPosition === 'left' || savedPosition === 'top') {
-    tabPosition = savedPosition;
-    document.body.className = `layout-${tabPosition}`;
+    setLayout(savedPosition);
   }
 
   // Restore saved accounts (reuse same partitions for session persistence)
