@@ -1,6 +1,6 @@
 {
   "name": "wapp",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Multi-account WhatsApp Web client for Mac with toggleable sidebar",
   "main": "src/main/index.js",
   "author": "alilibx",
@@ -27,10 +27,31 @@
       "src/**/*"
     ],
     "mac": {
+      "icon": "assets/icon.icns",
       "category": "public.app-category.social-networking",
       "target": [
         "dmg",
         "zip"
+      ]
+    },
+    "dmg": {
+      "background": "assets/dmg-background.png",
+      "iconSize": 80,
+      "window": {
+        "width": 660,
+        "height": 400
+      },
+      "contents": [
+        {
+          "x": 180,
+          "y": 260
+        },
+        {
+          "x": 480,
+          "y": 260,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     }
   }

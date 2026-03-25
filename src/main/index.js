@@ -107,7 +107,12 @@ ipcMain.handle('setup-session', (_event, partition) => {
 
 ipcMain.handle('set-traffic-light-position', (_event, position) => {
   if (mainWindow) {
-    mainWindow.setTrafficLightPosition(position);
+    try {
+      // Electron 27+
+      mainWindow.setWindowButtonPosition(position);
+    } catch {
+      // Ignore if API not available
+    }
   }
 });
 
