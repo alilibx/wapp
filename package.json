@@ -2,7 +2,13 @@
   "name": "wapp",
   "version": "1.0.0",
   "description": "Multi-account WhatsApp Web client for Mac with toggleable sidebar",
-  "main": "main.js",
+  "main": "src/main/index.js",
+  "author": "alilibx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alilibx/wapp.git"
+  },
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --mac"
@@ -14,9 +20,18 @@
   "build": {
     "appId": "com.wapp.client",
     "productName": "Wapp",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*"
+    ],
     "mac": {
       "category": "public.app-category.social-networking",
-      "target": "dmg"
+      "target": [
+        "dmg",
+        "zip"
+      ]
     }
   }
 }
